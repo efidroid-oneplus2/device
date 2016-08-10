@@ -237,66 +237,8 @@ void lcd_reg_disable(void)
 	pm8x41_gpio_set(lcd_reg_en.pin_id, 0);
 }
 
-int target_backlight_ctrl(struct backlight *bl, uint8_t enable)
-{
-	uint32_t ret = NO_ERROR;
-	struct pm8x41_mpp mpp;
-	int rc;
-
-	if (!bl) {
-		dprintf(CRITICAL, "backlight structure is not available\n");
-		return ERR_INVALID_ARGS;
-	}
-
-	switch (bl->bl_interface_type) {
-	case BL_WLED:
-		/* Enable MPP4 */
-		pmi8994_config_mpp_slave_id(PMIC_MPP_SLAVE_ID);
-	        mpp.base = PM8x41_MMP4_BASE;
-		mpp.vin = MPP_VIN2;
-		if (enable) {
-			pm_pwm_enable(false);
-			rc = pm_pwm_config(PWM_DUTY_US, PWM_PERIOD_US);
-			if (rc < 0) {
-				mpp.mode = MPP_HIGH;
-			} else {
-				mpp.mode = MPP_DTEST1;
-				pm_pwm_enable(true);
-			}
-			pm8x41_config_output_mpp(&mpp);
-			pm8x41_enable_mpp(&mpp, MPP_ENABLE);
-		} else {
-			pm_pwm_enable(false);
-			pm8x41_enable_mpp(&mpp, MPP_DISABLE);
-		}
-		/* Need delay before power on regulators */
-		mdelay(20);
-		/* Enable WLED backlight control */
-		ret = msm8994_wled_backlight_ctrl(enable);
-		break;
-	case BL_PWM:
-		/* Enable MPP1 */
-		pmi8994_config_mpp_slave_id(PMIC_MPP_SLAVE_ID);
-	        mpp.base = PM8x41_MMP1_BASE;
-		mpp.vin = MPP_VIN2;
-		mpp.mode = MPP_DTEST4;
-		if (enable) {
-			pm8x41_config_output_mpp(&mpp);
-			pm8x41_enable_mpp(&mpp, MPP_ENABLE);
-		} else {
-			pm8x41_enable_mpp(&mpp, MPP_DISABLE);
-		}
-		/* Need delay before power on regulators */
-		mdelay(20);
-		ret = msm8994_pwm_backlight_ctrl(enable);
-		break;
-	default:
-		dprintf(CRITICAL, "backlight type:%d not supported\n",
-						bl->bl_interface_type);
-		return ERR_NOT_SUPPORTED;
-	}
-
-	return ret;
+int target_backlight_ctrl(struct backlight *bl, uint8_t enable) {
+	return NO_ERROR;
 }
 
 int target_hdmi_pll_clock(uint8_t enable, struct msm_panel_info *pinfo)
@@ -384,26 +326,6 @@ clks_disable:
 int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 					struct msm_panel_info *pinfo)
 {
-	uint32_t i = 0;
-
-	if (enable) {
-		gpio_tlmm_config(reset_gpio.pin_id, 0,
-				reset_gpio.pin_direction, reset_gpio.pin_pull,
-				reset_gpio.pin_strength, reset_gpio.pin_state);
-		/* reset */
-		for (i = 0; i < RESET_GPIO_SEQ_LEN; i++) {
-			if (resetseq->pin_state[i] == GPIO_STATE_LOW)
-				gpio_set(reset_gpio.pin_id, GPIO_STATE_LOW);
-			else
-				gpio_set(reset_gpio.pin_id, GPIO_STATE_HIGH);
-			mdelay(resetseq->sleep[i]);
-		}
-		lcd_bklt_reg_enable();
-	} else {
-		lcd_bklt_reg_disable();
-		gpio_set(reset_gpio.pin_id, 0);
-	}
-
 	return NO_ERROR;
 }
 
@@ -463,24 +385,7 @@ static void wled_init(struct msm_panel_info *pinfo)
 	qpnp_wled_init(&config);
 }
 
-int target_ldo_ctrl(uint8_t enable, struct msm_panel_info *pinfo)
-{
-	if (enable) {
-		regulator_enable();	/* L2, L12, L14, and L28 */
-		mdelay(10);
-		wled_init(pinfo);
-		qpnp_ibb_enable(true);	/* +5V and -5V */
-		mdelay(50);
-
-		if (pinfo->lcd_reg_en)
-			lcd_reg_enable();
-	} else {
-		if (pinfo->lcd_reg_en)
-			lcd_reg_disable();
-
-		regulator_disable();
-	}
-
+int target_ldo_ctrl(uint8_t enable, struct msm_panel_info *pinfo) {
 	return NO_ERROR;
 }
 
