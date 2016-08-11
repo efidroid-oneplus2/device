@@ -33,31 +33,8 @@
 #include <qtimer.h>
 
 /* gpio -> key_code */
-/* for lge nexus 5 (D820) */
-#define TLMM_VOL_UP_BTN_GPIO 0x2 // keymap -> 115
-#define TLMM_VOL_DOWN_BTN_GPIO 0x3 //keymap -> 114
-
-
-uint32_t target_volume_up(void)
-{
-
-	uint8_t status = 0;
-	if(TLMM_VOL_DOWN_BTN_GPIO == -1)
-		return 0;
-	struct pm8x41_gpio gpio;
-
-	gpio.direction = PM_GPIO_DIR_IN;
-	gpio.function  = 0;
-	gpio.pull      = PM_GPIO_PULL_UP_30;
-	gpio.vin_sel   = 2;
-	pm8x41_gpio_config(TLMM_VOL_UP_BTN_GPIO, &gpio);
-	
-	udelay(10000);
-	pm8x41_gpio_get(TLMM_VOL_UP_BTN_GPIO, &status);
-	
-	
-	return !status;
-}
+/* for OnePlus 2 */
+#define TLMM_VOL_DOWN_BTN_GPIO 0x2 //keymap -> 115
 
 /* Return 1 if vol_down pressed */
 uint32_t target_volume_down(void)
